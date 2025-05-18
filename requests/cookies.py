@@ -6,7 +6,10 @@ Compatibility code to be able to use `cookielib.CookieJar` with requests.
 requests.utils imports from here, so be careful with imports.
 """
 
-import collections
+try:
+    from collections.abc import MutableMapping
+except ImportError:  # Python 2 fallback
+    from collections import MutableMapping
 from .compat import cookielib, urlparse, Morsel
 
 try:
@@ -133,7 +136,7 @@ class CookieConflictError(RuntimeError):
     Use .get and .set and include domain and path args in order to be more specific."""
 
 
-class RequestsCookieJar(cookielib.CookieJar, collections.MutableMapping):
+class RequestsCookieJar(cookielib.CookieJar, MutableMapping):
     """Compatibility class; is a cookielib.CookieJar, but exposes a dict interface.
 
     This is the CookieJar we create by default for requests and sessions that

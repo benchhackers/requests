@@ -73,6 +73,10 @@ class RequestsTestCase(unittest.TestCase):
         self.assertEqual(request.url,
             "http://example.com/path?key=value&a=b#fragment")
 
+    def test_content_length_header_not_added_for_get(self):
+        request = requests.Request('GET', "http://example.com/").prepare()
+        self.assertTrue('Content-Length' not in request.headers)
+
     def test_HTTP_200_OK_GET_ALTERNATIVE(self):
         r = requests.Request('GET', httpbin('get'))
         s = requests.Session()

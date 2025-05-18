@@ -137,10 +137,15 @@ class RequestHooksMixin(object):
     def register_hook(self, event, hook):
         """Properly register a hook."""
 
-        if isinstance(hook, collections.Callable):
+        try:
+            from collections.abc import Callable
+        except ImportError:  # Python 2 fallback
+            from collections import Callable
+
+        if isinstance(hook, Callable):
             self.hooks[event].append(hook)
         elif hasattr(hook, '__iter__'):
-            self.hooks[event].extend(h for h in hook if isinstance(h, collections.Callable))
+            self.hooks[event].extend(h for h in hook if isinstance(h, Callable))
 
     def deregister_hook(self, event, hook):
         """Deregister a previously registered hook.
@@ -386,12 +391,26 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):
         self.body = body
 
     def prepare_content_length(self, body):
-        self.headers['Content-Length'] = '0'
+        """Add or remove Content-Length header as appropriate."""
+
+        if body is None:
+            # No body to send; don't set a Content-Length header unless the
+            # user has explicitly provided one.
+            if 'Content-Length' in self.headers:
+                # Respect explicit header by leaving it as-is
+                return
+            self.headers.pop('Content-Length', None)
+            return
+
+        if 'Content-Length' in self.headers:
+            # Assume the user has set it deliberately.  Do not modify.
+            return
+
         if hasattr(body, 'seek') and hasattr(body, 'tell'):
             body.seek(0, 2)
             self.headers['Content-Length'] = str(body.tell())
             body.seek(0, 0)
-        elif body is not None:
+        else:
             self.headers['Content-Length'] = str(len(body))
 
     def prepare_auth(self, auth):
